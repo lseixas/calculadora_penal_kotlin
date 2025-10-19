@@ -3,6 +3,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,15 +13,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.calculadorapenalkotlin.ui.theme.CalculadoraPenalKotlinTheme
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.calculadorapenalkotlin.screenEnums.MainScreenEnum
 import com.example.calculadorapenalkotlin.screenEnums.StepScreenEnum
 import com.example.calculadorapenalkotlin.transformations.PhoneVisualTransformation
+import com.example.calculadorapenalkotlin.userStateEnum.UserStateEnum
+import org.lseixas.domain.enum.StatusApenado
+import org.lseixas.domain.enum.TipoCrime
+import org.lseixas.domain.objects.UsuarioES
+import org.lseixas.usecase.calcularBeneficios
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,6 +35,7 @@ class MainActivity : ComponentActivity() {
             CalculadoraPenalKotlinTheme { // Use o tema do seu projeto aqui
 
                 var currentScreen by remember { mutableStateOf(MainScreenEnum.CONTACT_FORM) }
+                var userStateEnum by remember { mutableStateOf(UserStateEnum.HAS_FILED)}
 
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     when (currentScreen) {
@@ -57,114 +66,184 @@ fun HomePage(onNavigateToContactForm: () -> Unit) {
     var tipoCrimeSelecionado by remember { mutableStateOf("Comum") }
     var statusApenadoSelecionado by remember { mutableStateOf("Primário") }
 
+    var calculationResult by remember { mutableStateOf<UsuarioES?>(null) }
 
-    Column(
+    val scrollState = rememberScrollState()
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            // Adiciona uma barra de rolagem caso o conteúdo não caiba na tela
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Calculadora Penal", style = MaterialTheme.typography.headlineLarge)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- INPUTS DA PENA ---
-        Text("Pena Total", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = penaAnos,
-                onValueChange = { if (it.all { char -> char.isDigit() }) penaAnos = it },
-                label = { Text("Anos") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-            OutlinedTextField(
-                value = penaMeses,
-                onValueChange = { if (it.all { char -> char.isDigit() }) penaMeses = it },
-                label = { Text("Meses") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-            OutlinedTextField(
-                value = penaDias,
-                onValueChange = { if (it.all { char -> char.isDigit() }) penaDias = it },
-                label = { Text("Dias") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- OUTROS INPUTS ---
-        OutlinedTextField(
-            value = dataInicio,
-            onValueChange = { dataInicio = it },
-            label = { Text("Data de Início (DD/MM/AAAA)") },
-            modifier = Modifier.fillMaxWidth()
-            // TODO: Idealmente, usar um DatePickerDialog aqui
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = detracao,
-            onValueChange = { if (it.all { char -> char.isDigit() }) detracao = it },
-            label = { Text("Detração (dias, se houver)") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- INPUTS DE MÚLTIPLA ESCOLHA ---
-        Text("Tipo de Crime", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
-        Row(modifier = Modifier.fillMaxWidth()) {
-            RadioButtonOption(
-                text = "Comum",
-                selected = tipoCrimeSelecionado == "Comum",
-                onClick = { tipoCrimeSelecionado = "Comum" }
-            )
-            RadioButtonOption(
-                text = "Hediondo",
-                selected = tipoCrimeSelecionado == "Hediondo",
-                onClick = { tipoCrimeSelecionado = "Hediondo" }
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Status do Apenado", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
-        Row(modifier = Modifier.fillMaxWidth()) {
-            RadioButtonOption(
-                text = "Primário",
-                selected = statusApenadoSelecionado == "Primário",
-                onClick = { statusApenadoSelecionado = "Primário" }
-            )
-            RadioButtonOption(
-                text = "Reincidente",
-                selected = statusApenadoSelecionado == "Reincidente",
-                onClick = { statusApenadoSelecionado = "Reincidente" }
-            )
-        }
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- BOTÕES DE AÇÃO ---
-        Button(
-            onClick = {
-                // TODO: Chamar sua lógica de cálculo `calcularBeneficios` aqui!
-                // Por enquanto, apenas imprimimos os valores para teste.
-                println("Calculando com: $penaAnos A, $penaMeses M, $penaDias D, Início: $dataInicio, Crime: $tipoCrimeSelecionado, Status: $statusApenadoSelecionado")
-            },
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                // Adiciona uma barra de rolagem caso o conteúdo não caiba na tela
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Calcular Benefícios")
-        }
+            Text("Calculadora Penal", style = MaterialTheme.typography.headlineLarge)
+            Spacer(modifier = Modifier.height(24.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            // --- INPUTS DA PENA ---
+            Text("Pena Total", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = penaAnos,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) penaAnos = it },
+                    label = { Text("Anos") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = penaMeses,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) penaMeses = it },
+                    label = { Text("Meses") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = penaDias,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) penaDias = it },
+                    label = { Text("Dias") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick = onNavigateToContactForm, // Chama a função para navegar
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Quero Falar com um Advogado")
+            // --- OUTROS INPUTS ---
+            OutlinedTextField(
+                value = dataInicio,
+                onValueChange = { dataInicio = it },
+                label = { Text("Data de Início (DD/MM/AAAA)") },
+                modifier = Modifier.fillMaxWidth()
+                // TODO: Idealmente, usar um DatePickerDialog aqui
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = detracao,
+                onValueChange = { if (it.all { char -> char.isDigit() }) detracao = it },
+                label = { Text("Detração (dias, se houver)") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- INPUTS DE MÚLTIPLA ESCOLHA ---
+            Text("Tipo de Crime", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            Row(modifier = Modifier.fillMaxWidth()) {
+                RadioButtonOption(
+                    text = "Comum",
+                    selected = tipoCrimeSelecionado == "Comum",
+                    onClick = { tipoCrimeSelecionado = "Comum" }
+                )
+                RadioButtonOption(
+                    text = "Hediondo",
+                    selected = tipoCrimeSelecionado == "Hediondo",
+                    onClick = { tipoCrimeSelecionado = "Hediondo" }
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("Status do Apenado", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
+            Row(modifier = Modifier.fillMaxWidth()) {
+                RadioButtonOption(
+                    text = "Primário",
+                    selected = statusApenadoSelecionado == "Primário",
+                    onClick = { statusApenadoSelecionado = "Primário" }
+                )
+                RadioButtonOption(
+                    text = "Reincidente",
+                    selected = statusApenadoSelecionado == "Reincidente",
+                    onClick = { statusApenadoSelecionado = "Reincidente" }
+                )
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = {
+
+                    calculationResult = null
+
+                    // --- ETAPA 1: COLETAR DADOS (sem conversão de data) ---
+                    val anos = penaAnos.toIntOrNull() ?: 0
+                    val meses = penaMeses.toIntOrNull() ?: 0
+                    val dias = penaDias.toIntOrNull() ?: 0
+                    val diasDetracao = detracao.toIntOrNull() ?: 0
+
+                    val tipoCrime = if (tipoCrimeSelecionado == "Comum") TipoCrime.COMUM else TipoCrime.HEDIONDO_EQUIPARADO
+                    val statusApenado = if (statusApenadoSelecionado == "Primário") StatusApenado.PRIMARIO else StatusApenado.REINCIDENTE
+
+                    // --- ETAPA 2: CHAMAR A LÓGICA ---
+                    // Criamos o objeto UsuarioES com os tipos simples que ele espera
+                    val entrada = UsuarioES(
+                        penaAnos = anos,
+                        penaMeses = meses,
+                        penaDias = dias,
+                        dataInicioPena = dataInicio, // <-- PASSAMOS A STRING DIRETAMENTE!
+                        detracaoDias = diasDetracao,
+                        tipoCrime = tipoCrime,
+                        statusApenado = statusApenado
+                    )
+
+                    // A função 'calcularBeneficios' agora é a única responsável
+                    // pela lógica de conversão e cálculo.
+                    calculationResult = calcularBeneficios(entrada)
+                    println("a")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Calcular Benefícios")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onNavigateToContactForm, // Chama a função para navegar
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Quero Falar com um Advogado")
+            }
+
+            AnimatedVisibility(
+                visible = calculationResult != null,
+                enter = slideInVertically { fullHeight -> fullHeight / 2 } + fadeIn(),
+                exit = slideOutVertically { fullHeight -> fullHeight } + fadeOut()
+            ) {
+                // Quando um novo resultado aparece, rolamos a tela para ele
+                LaunchedEffect(calculationResult) {
+                    // Rola suavemente para o final da página para garantir que o card seja visível
+                    scrollState.animateScrollTo(scrollState.maxValue)
+                }
+
+                // O Card de resultado, agora como um item normal da Column
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp), // Um espaço para separar dos botões
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Resultados do Cálculo", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Conteúdo do resultado...
+                        Text("Semiaberto: ${calculationResult?.dataProgressaoSemiaberto ?: "N/A"}", modifier = Modifier.fillMaxWidth())
+                        Text("Aberto: ${calculationResult?.dataProgressaoAberto ?: "N/A"}", modifier = Modifier.fillMaxWidth())
+                        Text("Livramento: ${calculationResult?.dataLivramentoCondicional ?: "N/A"}", modifier = Modifier.fillMaxWidth())
+
+                        if (calculationResult?.erro != null) {
+                            Text("Erro: ${calculationResult?.erro}", color = MaterialTheme.colorScheme.error, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -28,16 +28,14 @@ kotlin {
     }
     
     sourceSets {
+        androidMain.dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+        }
         commonMain.dependencies {
-            // put your Multiplatform dependencies here
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        val commonMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
-            }
         }
     }
 }

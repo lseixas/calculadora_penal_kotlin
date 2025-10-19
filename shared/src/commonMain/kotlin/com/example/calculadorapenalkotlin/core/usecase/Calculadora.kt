@@ -15,32 +15,51 @@ data class ResultadoProgressao(
 
 fun calcularBeneficios(entrada: UsuarioES): UsuarioES {
 
+    // --- ETAPA 1: CONVERTER E VALIDAR AS ENTRADAS ---
+    val dataInicioObj: LocalDate
+    try {
+        val dateParts = entrada.dataInicioPena.split("/")
+        dataInicioObj = LocalDate(
+            year = dateParts[2].toInt(),
+            monthNumber = dateParts[1].toInt(),
+            dayOfMonth = dateParts[0].toInt()
+        )
+    } catch (e: Exception) {
+        // Se a conversão falhar, retorna o objeto original com uma mensagem de erro.
+        return entrada.copy(erro = "Formato de data inválido. Use DD/MM/AAAA.")
+    }
 
-    // Semiaberto e Aberto
+    // --- ETAPA 2: EXECUTAR A LÓGICA DE CÁLCULO (código existente) ---
+    // Esta parte do código não muda, mas agora usa 'dataInicioObj' que criamos.
     val penaBaseDias: Int = (entrada.penaAnos * 365) + (entrada.penaMeses * 30) + (entrada.penaDias) - (entrada.detracaoDias)
     val resultadoSemiAberto: ResultadoProgressao = calcularDataProgressaoSemiaberto(penaBaseDias = penaBaseDias, entrada = entrada)
-    val dataDoSemiAberto: LocalDate = entrada.dataInicioPena.plus(resultadoSemiAberto.diasParaProgredir, DateTimeUnit.DAY)
+    val dataDoSemiAberto: LocalDate = dataInicioObj.plus(resultadoSemiAberto.diasParaProgredir, DateTimeUnit.DAY)
     val penaRestanteEmDias = penaBaseDias - resultadoSemiAberto.diasParaProgredir
     val diasAdicionaisParaOAberto = (penaRestanteEmDias * resultadoSemiAberto.fracaoUtilizada).toInt()
     val dataDoAberto: LocalDate = dataDoSemiAberto.plus(diasAdicionaisParaOAberto, DateTimeUnit.DAY)
 
-    // Livramento
-    val diasParaLivramento: Int = calcularDataLivramento(
-        penaBaseDias = penaBaseDias,
-        entrada = entrada
-    )
-    val dataLivramentoFinal: LocalDate?
-    if (diasParaLivramento > 0) {
-        dataLivramentoFinal = entrada.dataInicioPena.plus(diasParaLivramento, DateTimeUnit.DAY)
+    val diasParaLivramento: Int = calcularDataLivramento(penaBaseDias = penaBaseDias, entrada = entrada)
+    val dataLivramentoFinal: LocalDate? = if (diasParaLivramento > 0) {
+        dataInicioObj.plus(diasParaLivramento, DateTimeUnit.DAY)
     } else {
-        dataLivramentoFinal = null
+        null
     }
 
+    // --- ETAPA 3: CONVERTER OS RESULTADOS DE VOLTA PARA STRING ---
+    // Helper function para formatar a data de forma consistente
+    fun formatarData(data: LocalDate?): String? {
+        return data?.let {
+            // padStart garante que o formato seja sempre "01/09/2025" e não "1/9/2025"
+            val dia = it.dayOfMonth.toString().padStart(2, '0')
+            val mes = it.monthNumber.toString().padStart(2, '0')
+            "${dia}/${mes}/${it.year}"
+        }
+    }
 
     return entrada.copy(
-        dataProgressaoSemiaberto = dataDoSemiAberto,
-        dataProgressaoAberto = dataDoAberto,
-        dataLivramentoCondicional = dataLivramentoFinal
+        dataProgressaoSemiaberto = formatarData(dataDoSemiAberto),
+        dataProgressaoAberto = formatarData(dataDoAberto),
+        dataLivramentoCondicional = formatarData(dataLivramentoFinal)
     )
 }
 

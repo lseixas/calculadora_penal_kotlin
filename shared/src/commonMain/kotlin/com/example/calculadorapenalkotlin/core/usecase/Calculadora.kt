@@ -18,15 +18,25 @@ fun calcularBeneficios(entrada: UsuarioES): UsuarioES {
     // --- ETAPA 1: CONVERTER E VALIDAR AS ENTRADAS ---
     val dataInicioObj: LocalDate
     try {
-        val dateParts = entrada.dataInicioPena.split("/")
+        // Verifica se a string tem o comprimento esperado (8 dígitos)
+        if (entrada.dataInicioPena.length != 8) {
+            throw IllegalArgumentException("A string da data deve conter 8 dígitos.")
+        }
+
+        // Extrai dia, mês e ano usando substring
+        val dia = entrada.dataInicioPena.substring(0, 2).toInt()
+        val mes = entrada.dataInicioPena.substring(2, 4).toInt()
+        val ano = entrada.dataInicioPena.substring(4, 8).toInt()
+
+        // Cria o objeto LocalDate
         dataInicioObj = LocalDate(
-            year = dateParts[2].toInt(),
-            monthNumber = dateParts[1].toInt(),
-            dayOfMonth = dateParts[0].toInt()
+            year = ano,
+            monthNumber = mes,
+            dayOfMonth = dia
         )
     } catch (e: Exception) {
-        // Se a conversão falhar, retorna o objeto original com uma mensagem de erro.
-        return entrada.copy(erro = "Formato de data inválido. Use DD/MM/AAAA.")
+        // Captura erros de formato (length != 8) ou conversão (toInt inválido)
+        return entrada.copy(erro = "Data inválida ou incompleta. Use DDMMYYYY.") // Mensagem de erro mais precisa
     }
 
     // --- ETAPA 2: EXECUTAR A LÓGICA DE CÁLCULO (código existente) ---

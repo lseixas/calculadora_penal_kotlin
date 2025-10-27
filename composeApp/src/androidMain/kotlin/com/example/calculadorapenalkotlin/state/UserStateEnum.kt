@@ -1,4 +1,4 @@
-package com.example.calculadorapenalkotlin.userStateEnum
+package com.example.calculadorapenalkotlin.state
 
 enum class UserStateEnum {
     HAS_FILED,

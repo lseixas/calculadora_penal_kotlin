@@ -40,6 +40,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
+            implementation(projects.shared)
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {

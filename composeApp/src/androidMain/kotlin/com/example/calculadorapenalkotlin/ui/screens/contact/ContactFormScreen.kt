@@ -4,11 +4,15 @@ package com.example.calculadorapenalkotlin.ui.screens.contact // Pacote correto
 import androidx.compose.animation.*
 import androidx.compose.runtime.*
 import com.example.calculadorapenalkotlin.navigation.ContactStep // Importa o enum (anterior StepScreenEnum)
+import com.example.calculadorapenalkotlin.repositories.ContactRepository
+
 
 // Renomeado de MultiStepScreen para maior clareza
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun ContactFormScreen(onNavigateToHome: () -> Unit) {
+fun ContactFormScreen(
+    onNavigateToHome: () -> Unit,
+    contactRepository: ContactRepository) {
     var currentStep by remember { mutableStateOf(ContactStep.NAME) } // Assumindo que você renomeou o enum e os valores
 
     // States para os dados do formulário
@@ -44,7 +48,12 @@ fun ContactFormScreen(onNavigateToHome: () -> Unit) {
             ContactStep.PROCESS_ASK -> Step4ProcessAsk(
                 onConfirm = { currentStep = ContactStep.PROCESS_INPUT },
                 onDeny = {
-                    // TODO: Enviar dados coletados (nome, whatsapp, email) antes de navegar
+                    contactRepository.saveContactInfo(
+                        name = nome,
+                        whatsapp = whatsapp,
+                        email = email,
+                        process = null // Usuário escolheu "Não"
+                    )
                     onNavigateToHome()
                     currentStep = ContactStep.NAME // Reseta para o início
                 }
@@ -53,7 +62,12 @@ fun ContactFormScreen(onNavigateToHome: () -> Unit) {
                 numeroProcessoValue = numeroProcesso,
                 onNumeroProcessoChange = { numeroProcesso = it },
                 onConfirm = {
-                    // TODO: Enviar dados coletados (todos) antes de navegar
+                    contactRepository.saveContactInfo(
+                        name = nome,
+                        whatsapp = whatsapp,
+                        email = email,
+                        process = numeroProcesso // Salva o número do processo
+                    )
                     onNavigateToHome()
                     currentStep = ContactStep.NAME // Reseta para o início
                 }

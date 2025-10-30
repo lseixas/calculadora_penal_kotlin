@@ -14,24 +14,25 @@ import com.example.calculadorapenalkotlin.ui.theme.CalculadoraPenalKotlinTheme /
 
 @Composable
 fun App() {
-    CalculadoraPenalKotlinTheme { // Aplica o tema geral do app
+    CalculadoraPenalKotlinTheme {
 
-        // State que controla qual tela principal está sendo exibida
-        // Começa na HomePage por padrão
-        var currentScreen by remember { mutableStateOf(Screen.CONTACT_FORM) }
+        val dependencies = rememberAppDependencies()
 
-        // O Surface é o container raiz da UI
+        val hasContactInfo = remember { dependencies.contactRepository.hasCompleteContactInfo() }
+
+        var currentScreen by remember {
+            mutableStateOf(
+                if (hasContactInfo) Screen.HOME else Screen.CONTACT_FORM
+            )
+        }
+
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            // O 'when' decide qual Composable de tela inteira mostrar
             when (currentScreen) {
                 Screen.HOME -> HomePage(
-                    // Passa uma função lambda que a HomePage pode chamar
-                    // para solicitar a navegação para o formulário de contato.
                     onNavigateToContactForm = { currentScreen = Screen.CONTACT_FORM }
                 )
-                Screen.CONTACT_FORM -> ContactFormScreen( // Usando o nome mais descritivo
-                    // Passa uma função lambda que o ContactFormScreen pode chamar
-                    // para solicitar a navegação de volta para a HomePage.
+                Screen.CONTACT_FORM -> ContactFormScreen(
+                    contactRepository = dependencies.contactRepository,
                     onNavigateToHome = { currentScreen = Screen.HOME }
                 )
             }

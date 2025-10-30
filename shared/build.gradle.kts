@@ -30,9 +30,11 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+            api("com.russhwolf:multiplatform-settings:1.1.1")
         }
         commonMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+            api("com.russhwolf:multiplatform-settings:1.1.1")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
